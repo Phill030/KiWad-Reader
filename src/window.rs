@@ -1,6 +1,11 @@
+use std::{collections::HashMap, ops::Add};
+
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
-    egui::{CentralPanel, Layout, RichText, ScrollArea, SidePanel, TextEdit, TopBottomPanel},
+    egui::{
+        CentralPanel, CollapsingHeader, Id, Layout, RichText, ScrollArea, SidePanel, TextEdit,
+        TopBottomPanel, Ui,
+    },
     emath::Align,
     App,
 };
@@ -71,13 +76,19 @@ impl App for Window {
                         );
                     });
 
-                    // CollapsingHeader::new("WAD-File")
-                    // .default_open(self.files.len() > 0)
-                    // .show(ui, |ui| {
-                    //     for el in &self.files.iter().cloned().collect::<Vec<FileRecord>>() {
-                    //         // recursive_show(ui, el, &el.file_name, self);
-                    //     }
-                    // });
+                    CollapsingHeader::new("CSR.wad")
+                        .default_open(self.files.len() > 0)
+                        .show(ui, |ui| {
+                            FileTree::render(
+                                &self
+                                    .files
+                                    .iter()
+                                    .cloned()
+                                    .take(50)
+                                    .collect::<Vec<FileRecord>>(),
+                                ui,
+                            );
+                        });
                 }
             });
         });
@@ -92,32 +103,54 @@ impl App for Window {
     }
 }
 
-// fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd: &mut Window) {
-//     if input.file_name.contains("/") {
-//         let path = &input.file_name.split("/").collect::<Vec<&str>>();
-//         let file_name = path.first().unwrap().to_string();
-//         let new_path = &input.file_name[file_name.len() + 1..];
+fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd: &mut Window) {
+    if input.file_name.contains("/") {
+        let path = &input.file_name.split("/").collect::<Vec<&str>>();
+        let file_name = path.first().unwrap().to_string();
+        let new_path = &input.file_name[file_name.len() + 1..];
 
-//         CollapsingHeader::new(file_name.clone())
-//             .id_source(Id::with(ui.id(), full_file_name))
-//             .default_open(false)
-//             .show(ui, |ui| {
-//                 let record = FileRecord {
-//                     file_name: new_path.to_string(),
-//                     ..*input
-//                 };
+        CollapsingHeader::new(String::from("🗀  ").add(&file_name))
+            .id_source(Id::with(ui.id(), full_file_name))
+            .default_open(false)
+            .show(ui, |ui| {
+                let record = FileRecord {
+                    file_name: new_path.to_string(),
+                    ..*input
+                };
 
-//                 recursive_show(ui, &record, full_file_name, wnd);
-//             });
-//     } else {
-//         if ui.selectable_label(false, &input.file_name).clicked() {
-//             wnd.selected_record = full_file_name.to_owned();
-//             wnd.selected_record_content = String::from("");
-//         }
-//     }
-// }
+                recursive_show(ui, &record, full_file_name, wnd);
+            });
+    } else {
+        if ui
+            .selectable_label(false, String::from("🗋  ").add(&input.file_name))
+            .clicked()
+        {
+            wnd.selected_record = full_file_name.to_owned();
+            wnd.selected_record_content = String::from("");
+        }
+    }
+}
 
 // Input:
 // QuestData/KR/KR-LAST-C18-001.xml
 // QuestData/WC/WC-ICE-C04-001.xml
 // QuestArcData/KT-CRY5-C01.xml
+
+struct FileTree<'a> {
+    pub files: &'a Vec<FileRecord>,
+}
+
+impl<'a> FileTree<'a> {
+    pub fn new(files: &'a Vec<FileRecord>) -> Self {
+        Self { files }
+    }
+
+    pub fn render(files: &Vec<FileRecord>, ui: &mut Ui) {
+        for file in files.iter() {
+            let split_name: Vec<&str> = file.file_name.split("/").collect();
+            let paths: Vec<&str> = split_name.split(|n| n.contains(".")).collect();
+
+            ui.selectable_label(false, String::from("🗋  ").add(split_name.last().unwrap()));
+        }
+    }
+}

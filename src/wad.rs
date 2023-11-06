@@ -18,6 +18,12 @@ pub struct FileRecord {
     pub file_name: String,
 }
 
+impl FileRecord {
+    pub fn path_segments(&self) -> Vec<&str> {
+        self.file_name.split('/').collect()
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct WadRework<'a> {
     pub version: u32,
