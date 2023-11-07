@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Add};
+use std::ops::Add;
 
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
@@ -79,15 +79,7 @@ impl App for Window {
                     CollapsingHeader::new("CSR.wad")
                         .default_open(self.files.len() > 0)
                         .show(ui, |ui| {
-                            FileTree::render(
-                                &self
-                                    .files
-                                    .iter()
-                                    .cloned()
-                                    .take(50)
-                                    .collect::<Vec<FileRecord>>(),
-                                ui,
-                            );
+                            //
                         });
                 }
             });
@@ -136,21 +128,4 @@ fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd:
 // QuestData/WC/WC-ICE-C04-001.xml
 // QuestArcData/KT-CRY5-C01.xml
 
-struct FileTree<'a> {
-    pub files: &'a Vec<FileRecord>,
-}
-
-impl<'a> FileTree<'a> {
-    pub fn new(files: &'a Vec<FileRecord>) -> Self {
-        Self { files }
-    }
-
-    pub fn render(files: &Vec<FileRecord>, ui: &mut Ui) {
-        for file in files.iter() {
-            let split_name: Vec<&str> = file.file_name.split("/").collect();
-            let paths: Vec<&str> = split_name.split(|n| n.contains(".")).collect();
-
-            ui.selectable_label(false, String::from("🗋  ").add(split_name.last().unwrap()));
-        }
-    }
-}
+// Define a custom folder structure
