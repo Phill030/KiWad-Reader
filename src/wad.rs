@@ -26,18 +26,31 @@ pub struct FileRecord {
 }
 
 impl FileRecord {
-    pub fn get_folder_path(&self) -> String {
+    pub fn file_name(&self) -> String {
         if self.file_name.contains("/") {
-            let path_parts: Vec<&str> = self.file_name.split('/').collect();
-            path_parts
-                .iter()
-                .take(path_parts.len() - 1)
-                .cloned()
-                .collect::<Vec<&str>>()
-                .join("/")
+            self.file_name.split("/").last().unwrap().to_string()
         } else {
             self.file_name.clone()
         }
+    }
+
+    pub fn folder_path(&self) -> String {
+        let path_parts: Vec<&str> = self.file_name.split('/').collect();
+        path_parts
+            .iter()
+            .take(path_parts.len() - 1)
+            .cloned()
+            .collect::<Vec<&str>>()
+            .join("/")
+    }
+
+    pub fn folder_path_collected(&self) -> Vec<&str> {
+        let path_parts: Vec<&str> = self.file_name.split('/').collect();
+        path_parts
+            .iter()
+            .take(path_parts.len() - 1)
+            .cloned()
+            .collect::<Vec<&str>>()
     }
 }
 
