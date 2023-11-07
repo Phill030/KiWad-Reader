@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{collections::HashMap, fs::File, ops::Add};
 
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
@@ -40,9 +40,9 @@ impl App for Window {
                             Ok(mut buffer) => match WadRework::new(&mut buffer) {
                                 Ok(wad) => {
                                     self.files = wad.files.values().cloned().collect();
-                                    for ele in &self.files {
-                                        println!("{}", ele.file_name);
-                                    }
+                                    // for ele in &self.files {
+                                    // println!("{}", ele.file_name);
+                                    // }
                                     self.invalid_file_found = false;
                                 }
                                 Err(_) => self.invalid_file_found = true,
@@ -78,9 +78,7 @@ impl App for Window {
 
                     CollapsingHeader::new("CSR.wad")
                         .default_open(self.files.len() > 0)
-                        .show(ui, |ui| {
-                            //
-                        });
+                        .show(ui, |ui| show_file_tree(ui, &self.files));
                 }
             });
         });
@@ -95,33 +93,38 @@ impl App for Window {
     }
 }
 
-fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd: &mut Window) {
-    if input.file_name.contains("/") {
-        let path = &input.file_name.split("/").collect::<Vec<&str>>();
-        let file_name = path.first().unwrap().to_string();
-        let new_path = &input.file_name[file_name.len() + 1..];
-
-        CollapsingHeader::new(String::from("🗀  ").add(&file_name))
-            .id_source(Id::with(ui.id(), full_file_name))
-            .default_open(false)
-            .show(ui, |ui| {
-                let record = FileRecord {
-                    file_name: new_path.to_string(),
-                    ..*input
-                };
-
-                recursive_show(ui, &record, full_file_name, wnd);
-            });
-    } else {
-        if ui
-            .selectable_label(false, String::from("🗋  ").add(&input.file_name))
-            .clicked()
-        {
-            wnd.selected_record = full_file_name.to_owned();
-            wnd.selected_record_content = String::from("");
-        }
-    }
+fn show_file_tree(ui: &mut Ui, files: &Vec<FileRecord>) {
+    let file_paths: Vec<String> = files.iter().take(5).map(|f| f.file_name.clone()).collect();
+    println!("{:?}", file_paths);
 }
+
+// fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd: &mut Window) {
+//     if input.file_name.contains("/") {
+//         let path = &input.file_name.split("/").collect::<Vec<&str>>();
+//         let file_name = path.first().unwrap().to_string();
+//         let new_path = &input.file_name[file_name.len() + 1..];
+
+//         CollapsingHeader::new(String::from("🗀  ").add(&file_name))
+//             .id_source(Id::with(ui.id(), full_file_name))
+//             .default_open(false)
+//             .show(ui, |ui| {
+//                 let record = FileRecord {
+//                     file_name: new_path.to_string(),
+//                     ..*input
+//                 };
+
+//                 recursive_show(ui, &record, full_file_name, wnd);
+//             });
+//     } else {
+//         if ui
+//             .selectable_label(false, String::from("🗋  ").add(&input.file_name))
+//             .clicked()
+//         {
+//             wnd.selected_record = full_file_name.to_owned();
+//             wnd.selected_record_content = String::from("");
+//         }
+//     }
+// }
 
 // Input:
 // QuestData/KR/KR-LAST-C18-001.xml
