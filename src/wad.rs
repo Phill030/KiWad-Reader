@@ -1,4 +1,5 @@
 use binary_modifier::{BinaryError, BinaryReader, Endian};
+use eframe::egui::{CollapsingHeader, Ui};
 use flate2::DecompressError;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -10,17 +11,33 @@ use std::{
 
 #[derive(Debug, Clone)]
 pub struct FileRecord {
+    /// absolute offset from 0x000000
     pub offset: u32,
+    /// uncrompressed size of the file
     pub size: u32,
+    /// compressed size of the file
     pub zip_size: u32,
+    /// if zipped, it needs to be inflated using zLib
     pub zipped: bool,
+    /// Checksum of the file
     pub crc32: u32,
+    /// name and full path of the file
     pub file_name: String,
 }
 
 impl FileRecord {
-    pub fn path_segments(&self) -> Vec<&str> {
-        self.file_name.split('/').collect()
+    pub fn get_folder_path(&self) -> String {
+        if self.file_name.contains("/") {
+            let path_parts: Vec<&str> = self.file_name.split('/').collect();
+            path_parts
+                .iter()
+                .take(path_parts.len() - 1)
+                .cloned()
+                .collect::<Vec<&str>>()
+                .join("/")
+        } else {
+            self.file_name.clone()
+        }
     }
 }
 
