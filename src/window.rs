@@ -101,8 +101,7 @@ impl App for Window {
                     );
                     ui.separator();
 
-                    let buffer = String::from_utf8(self.selected_record_buffer.clone())
-                        .unwrap_or(String::from("Error converting buffer to String"));
+                    let buffer = String::from_utf8_lossy(&self.selected_record_buffer).to_string();
                     let mut content = buffer.as_str();
 
                     let multi_line =
