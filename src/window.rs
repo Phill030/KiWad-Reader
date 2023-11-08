@@ -145,7 +145,8 @@ impl Item {
         match self {
             Item::File(name) => {
                 let icon = match name.split(".").last().unwrap() {
-                    "png" | "dds" | "bmp" => "📷",
+                    "png" | "dds" | "bmp" | "jpg" | "jpeg" => "📷",
+                    "mp3" | "ogg" | "wav" => "🎵",
                     _ => "🗋",
                 };
 
