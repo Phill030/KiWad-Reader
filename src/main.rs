@@ -10,7 +10,7 @@ mod window;
 fn main() {
     let win_option = NativeOptions::default();
     run_native(
-        "VoiceClient",
+        "KiWad-Reader",
         win_option,
         Box::new(move |cc| {
             let style = Style {
