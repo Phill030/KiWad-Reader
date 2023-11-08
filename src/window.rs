@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fs::File, ops::Add};
+use std::ops::Add;
 
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
     egui::{
-        CentralPanel, CollapsingHeader, Id, Layout, RichText, ScrollArea, SidePanel, TextEdit,
+        CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel, TextEdit,
         TopBottomPanel, Ui,
     },
     emath::Align,
@@ -40,9 +40,6 @@ impl App for Window {
                             Ok(mut buffer) => match WadRework::new(&mut buffer) {
                                 Ok(wad) => {
                                     self.files = wad.files.values().cloned().collect();
-                                    // for ele in &self.files {
-                                    // println!("{}", ele.file_name);
-                                    // }
                                     self.invalid_file_found = false;
                                 }
                                 Err(_) => self.invalid_file_found = true,
@@ -65,7 +62,7 @@ impl App for Window {
         });
 
         SidePanel::left("left_panel").show(ctx, |ui| {
-            ui.set_min_width(200.0);
+            ui.set_min_width(270.0);
 
             ScrollArea::vertical().show(ui, |ui| {
                 if !self.files.is_empty() {
@@ -76,9 +73,11 @@ impl App for Window {
                         );
                     });
 
-                    CollapsingHeader::new("CSR.wad")
-                        .default_open(self.files.len() > 0)
-                        .show(ui, |ui| show_file_tree(ui, &self.files));
+                    let tree = build_file_system_tree(
+                        self.files.iter().map(|f| f.file_name.as_str()).collect(),
+                        "CSR.wad".to_string(),
+                    );
+                    tree.display_tree(0, ui, self);
                 }
             });
         });
@@ -87,48 +86,82 @@ impl App for Window {
             if self.selected_record_content.len() > 0 {
                 ui.text_edit_multiline(&mut format!("{:#?}", self.selected_record_content));
             } else {
-                self.selected_record_content = self.selected_record.clone();
+                let file = self
+                    .files
+                    .iter()
+                    .filter(|f| f.file_name.ends_with(f.file_name().as_str()))
+                    .collect::<Vec<&FileRecord>>()
+                    .first()
+                    .unwrap();
             }
         });
     }
 }
 
-fn show_file_tree(ui: &mut Ui, files: &Vec<FileRecord>) {
-    let file_paths: Vec<String> = files.iter().take(5).map(|f| f.file_name.clone()).collect();
-    println!("{:?}", file_paths);
+#[derive(Debug)]
+enum Item {
+    File(String),
+    Directory(String, Vec<Item>),
 }
 
-// fn recursive_show(ui: &mut Ui, input: &FileRecord, full_file_name: &String, wnd: &mut Window) {
-//     if input.file_name.contains("/") {
-//         let path = &input.file_name.split("/").collect::<Vec<&str>>();
-//         let file_name = path.first().unwrap().to_string();
-//         let new_path = &input.file_name[file_name.len() + 1..];
+impl Item {
+    fn display_tree(&self, indent: usize, ui: &mut Ui, wnd: &mut Window) {
+        match self {
+            Item::File(name) => {
+                if ui
+                    .selectable_label(false, String::from("🗋  ").add(&name))
+                    .clicked()
+                {
+                    wnd.selected_record = name.to_owned();
+                    wnd.selected_record_content = String::from("");
+                }
+            }
+            Item::Directory(name, items) => {
+                CollapsingHeader::new(String::from("🗀  ").add(name))
+                    .default_open(false)
+                    .show(ui, |ui| {
+                        for item in items {
+                            item.display_tree(indent + 1, ui, wnd);
+                        }
+                    });
+            }
+        }
+    }
+}
 
-//         CollapsingHeader::new(String::from("🗀  ").add(&file_name))
-//             .id_source(Id::with(ui.id(), full_file_name))
-//             .default_open(false)
-//             .show(ui, |ui| {
-//                 let record = FileRecord {
-//                     file_name: new_path.to_string(),
-//                     ..*input
-//                 };
+fn add_file_to_tree(current: &mut Item, path: &str) {
+    let components: Vec<&str> = path.split('/').collect();
+    match components.len() {
+        1 => {
+            if let Item::Directory(_, children) = current {
+                children.push(Item::File(path.to_string()));
+            }
+        }
+        _ => {
+            if let Item::Directory(_, children) = current {
+                let dir_name = components[0].to_string();
+                if let Some(child) = children.iter_mut().find(|child| {
+                    if let Item::Directory(name, _) = child {
+                        name == &dir_name
+                    } else {
+                        false
+                    }
+                }) {
+                    add_file_to_tree(child, &path[(dir_name.len() + 1)..]);
+                } else {
+                    let mut new_dir = Item::Directory(dir_name.clone(), vec![]);
+                    add_file_to_tree(&mut new_dir, &path[(dir_name.len() + 1)..]);
+                    children.push(new_dir);
+                }
+            }
+        }
+    }
+}
 
-//                 recursive_show(ui, &record, full_file_name, wnd);
-//             });
-//     } else {
-//         if ui
-//             .selectable_label(false, String::from("🗋  ").add(&input.file_name))
-//             .clicked()
-//         {
-//             wnd.selected_record = full_file_name.to_owned();
-//             wnd.selected_record_content = String::from("");
-//         }
-//     }
-// }
-
-// Input:
-// QuestData/KR/KR-LAST-C18-001.xml
-// QuestData/WC/WC-ICE-C04-001.xml
-// QuestArcData/KT-CRY5-C01.xml
-
-// Define a custom folder structure
+fn build_file_system_tree(paths: Vec<&str>, wad_name: String) -> Item {
+    let mut root = Item::Directory(wad_name, vec![]);
+    for path in paths {
+        add_file_to_tree(&mut root, path);
+    }
+    root
+}
