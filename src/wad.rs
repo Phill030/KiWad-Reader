@@ -1,5 +1,4 @@
 use binary_modifier::{BinaryError, BinaryReader, Endian};
-use eframe::egui::{CollapsingHeader, Ui};
 use flate2::DecompressError;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -54,23 +53,23 @@ impl FileRecord {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct WadRework<'a> {
+#[derive(Debug, Default, Clone)]
+pub struct WadRework {
     pub version: u32,
     pub file_count: u32,
     pub files: HashMap<String, FileRecord>,
-    pub buffer: &'a mut [u8],
+    pub buffer: Vec<u8>,
 }
 
-impl<'a> WadRework<'a> {
+impl WadRework {
     /// # Panics
     ///
     /// Will panic if the file doesn't contain a `KIWAD` header!
-    pub fn new(buffer: &'a mut Vec<u8>) -> Result<Self, BinaryError> {
-        let mut reader = BinaryReader::new_vec(buffer, Endian::Little);
+    pub fn new(file_name: &str) -> Result<Self, BinaryError> {
+        let mut buffer = std::fs::read(file_name)?;
+        let mut reader = BinaryReader::new_vec(&mut buffer, Endian::Little);
 
         let header = &reader.read_bytes(5)?;
-
         if Self::is_magic_header(header) {
             let version = reader.read_u32()?;
             let file_count = reader.read_u32()?;
@@ -128,7 +127,7 @@ impl<'a> WadRework<'a> {
     pub fn open_all_files(&mut self, path: &mut Path) {
         self.files.par_iter().for_each(|(file_name, file_record)| {
             let mut buffer: Vec<u8> = Vec::with_capacity(file_record.size as usize);
-            let mut cursor: Cursor<&&mut [u8]> = Cursor::new(&self.buffer);
+            let mut cursor: Cursor<&Vec<u8>> = Cursor::new(&self.buffer);
 
             let data = {
                 let mut result = vec![
@@ -178,7 +177,7 @@ impl<'a> WadRework<'a> {
             .expect("File does not exist inside of wad!");
 
         let mut buffer: Vec<u8> = Vec::with_capacity(file_record.size as usize);
-        let mut cursor: Cursor<&&mut [u8]> = Cursor::new(&self.buffer);
+        let mut cursor: Cursor<&Vec<u8>> = Cursor::new(&self.buffer);
 
         let data = {
             let mut result = vec![
