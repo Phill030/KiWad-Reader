@@ -7,6 +7,7 @@ use eframe::{
         TopBottomPanel, Ui,
     },
     emath::Align,
+    epaint::FontId,
     App,
 };
 
@@ -94,6 +95,12 @@ impl App for Window {
         CentralPanel::default().show(ctx, |ui| {
             if self.selected_record_buffer.len() > 0 {
                 ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(
+                        RichText::new(format!("{}", self.selected_record))
+                            .font(FontId::proportional(20.0)),
+                    );
+                    ui.separator();
+
                     let buffer = String::from_utf8(self.selected_record_buffer.clone())
                         .unwrap_or(String::from("Error converting buffer to String"));
                     let mut content = buffer.as_str();
