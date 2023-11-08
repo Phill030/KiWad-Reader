@@ -13,7 +13,7 @@ use eframe::{
 #[derive(Default)]
 pub struct Window {
     file_search: String,
-    files: Vec<FileRecord>,
+    wad: WadRework,
     wad_path: String,
     selected_record: String,
     selected_record_content: String,
@@ -36,14 +36,15 @@ impl App for Window {
                 ui.add(TextEdit::singleline(&mut self.wad_path).hint_text("Path of the .wad file"));
                 if ui.button("Open file").clicked() {
                     if !self.wad_path.is_empty() {
-                        match std::fs::read(&self.wad_path) {
-                            Ok(mut buffer) => match WadRework::new(&mut buffer) {
-                                Ok(wad) => {
-                                    self.files = wad.files.values().cloned().collect();
-                                    self.invalid_file_found = false;
-                                }
-                                Err(_) => self.invalid_file_found = true,
-                            },
+                        match WadRework::new(&self.wad_path) {
+                            Ok(wad) => {
+                                self.wad = wad;
+
+                                self.invalid_file_found = false;
+                                self.file_search.clear();
+                                self.selected_record.clear();
+                                self.selected_record_content.clear();
+                            }
                             Err(_) => self.invalid_file_found = true,
                         }
                     }
@@ -56,16 +57,18 @@ impl App for Window {
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::RIGHT), |ui| {
-                    ui.label(format!("{} Files", self.files.len()));
+                    ui.label(format!("{} Files", self.wad.file_count));
                 })
             });
         });
 
         SidePanel::left("left_panel").show(ctx, |ui| {
-            ui.set_min_width(270.0);
+            ui.set_min_width(300.0);
 
             ScrollArea::vertical().show(ui, |ui| {
-                if !self.files.is_empty() {
+                let files: Vec<&FileRecord> = self.wad.files.values().collect();
+
+                if !files.is_empty() {
                     ui.with_layout(Layout::left_to_right(Align::LEFT), |ui| {
                         ui.label("Search");
                         ui.add(
@@ -73,9 +76,15 @@ impl App for Window {
                         );
                     });
 
+                    let split_by = if self.wad_path.contains("/") {
+                        "/"
+                    } else {
+                        "\\"
+                    };
+
                     let tree = build_file_system_tree(
-                        self.files.iter().map(|f| f.file_name.as_str()).collect(),
-                        "CSR.wad".to_string(),
+                        files.iter().map(|f| f.file_name.as_str()).collect(),
+                        self.wad_path.split(split_by).last().unwrap().to_string(),
                     );
                     tree.display_tree(0, ui, self);
                 }
@@ -84,15 +93,30 @@ impl App for Window {
 
         CentralPanel::default().show(ctx, |ui| {
             if self.selected_record_content.len() > 0 {
-                ui.text_edit_multiline(&mut format!("{:#?}", self.selected_record_content));
+                ScrollArea::vertical().show(ui, |ui| {
+                    let content = &mut self.selected_record_content.as_str();
+
+                    let multi_line =
+                        TextEdit::multiline(content).desired_width(ui.available_width());
+                    ui.add(multi_line);
+                });
             } else {
-                let file = self
-                    .files
-                    .iter()
-                    .filter(|f| f.file_name.ends_with(f.file_name().as_str()))
-                    .collect::<Vec<&FileRecord>>()
-                    .first()
-                    .unwrap();
+                if !self.selected_record.is_empty() {
+                    // TODO: Run read_file only once
+
+                    println!("{}", self.selected_record);
+                    let wad = self.wad.clone();
+
+                    let values = wad.files.values();
+                    let collected = values
+                        .filter(|v| v.file_name.ends_with(self.selected_record.as_str()))
+                        .collect::<Vec<&FileRecord>>();
+                    let file = collected.first().unwrap();
+                    let content = self.wad.read_file(&file.file_name).unwrap();
+
+                    self.selected_record_content = String::from_utf8(content)
+                        .unwrap_or(String::from("Error converting buffer to string"));
+                }
             }
         });
     }
@@ -108,14 +132,21 @@ impl Item {
     fn display_tree(&self, indent: usize, ui: &mut Ui, wnd: &mut Window) {
         match self {
             Item::File(name) => {
+                let icon = match name.split(".").last().unwrap() {
+                    "png" | "dds" | "bmp" => "📷",
+                    _ => "🗋",
+                };
+
                 if ui
-                    .selectable_label(false, String::from("🗋  ").add(&name))
+                    .selectable_label(wnd.selected_record.eq(name), format!("{icon}  ").add(&name))
                     .clicked()
                 {
+                    println!("{}", name.to_owned());
                     wnd.selected_record = name.to_owned();
                     wnd.selected_record_content = String::from("");
                 }
             }
+
             Item::Directory(name, items) => {
                 CollapsingHeader::new(String::from("🗀  ").add(name))
                     .default_open(false)
