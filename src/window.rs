@@ -16,7 +16,7 @@ pub struct Window {
     wad: WadRework,
     wad_path: String,
     selected_record: String,
-    selected_record_content: String,
+    selected_record_buffer: Vec<u8>,
     invalid_file_found: bool,
 }
 
@@ -43,7 +43,7 @@ impl App for Window {
                                 self.invalid_file_found = false;
                                 self.file_search.clear();
                                 self.selected_record.clear();
-                                self.selected_record_content.clear();
+                                self.selected_record_buffer.clear();
                             }
                             Err(_) => self.invalid_file_found = true,
                         }
@@ -92,19 +92,19 @@ impl App for Window {
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            if self.selected_record_content.len() > 0 {
+            if self.selected_record_buffer.len() > 0 {
                 ScrollArea::vertical().show(ui, |ui| {
-                    let content = &mut self.selected_record_content.as_str();
+                    let buffer = String::from_utf8(self.selected_record_buffer.clone())
+                        .unwrap_or(String::from("Error converting buffer to String"));
+                    let mut content = buffer.as_str();
 
                     let multi_line =
-                        TextEdit::multiline(content).desired_width(ui.available_width());
+                        TextEdit::multiline(&mut content).desired_width(ui.available_width());
                     ui.add(multi_line);
                 });
             } else {
                 if !self.selected_record.is_empty() {
                     // TODO: Run read_file only once
-
-                    println!("{}", self.selected_record);
                     let wad = self.wad.clone();
 
                     let values = wad.files.values();
@@ -114,8 +114,13 @@ impl App for Window {
                     let file = collected.first().unwrap();
                     let content = self.wad.read_file(&file.file_name).unwrap();
 
-                    self.selected_record_content = String::from_utf8(content)
-                        .unwrap_or(String::from("Error converting buffer to string"));
+                    let buff = if content.is_empty() {
+                        b"Empty file".to_vec()
+                    } else {
+                        content
+                    };
+
+                    self.selected_record_buffer = buff;
                 }
             }
         });
@@ -141,9 +146,8 @@ impl Item {
                     .selectable_label(wnd.selected_record.eq(name), format!("{icon}  ").add(&name))
                     .clicked()
                 {
-                    println!("{}", name.to_owned());
                     wnd.selected_record = name.to_owned();
-                    wnd.selected_record_content = String::from("");
+                    wnd.selected_record_buffer.clear();
                 }
             }
 
