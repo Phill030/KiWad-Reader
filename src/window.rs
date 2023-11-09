@@ -206,22 +206,6 @@ impl Item {
             }
         }
     }
-
-    fn search(&self, query: &str) -> bool {
-        match self {
-            Item::File(name) => return name.contains(query),
-            Item::Directory(name, items) => {
-                if name.contains(query) {
-                    true
-                } else {
-                    for item in items {
-                        item.search(query);
-                    }
-                    false
-                }
-            }
-        }
-    }
 }
 
 fn add_file_to_tree(current: &mut Item, path: &str) {
