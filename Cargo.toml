@@ -6,7 +6,8 @@ authors = ["Phill030"]
 
 
 [dependencies]
-eframe = "0.23.0"
 binary_modifier = "0.3.3"
+eframe = "0.23.0"
+egui_extras = "0.23.0"
 flate2 = "1.0.28"
 rayon = "1.8.0"
