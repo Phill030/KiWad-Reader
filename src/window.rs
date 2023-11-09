@@ -1,4 +1,7 @@
-use std::ops::Add;
+use std::{
+    fs::{self, File},
+    ops::Add,
+};
 
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
@@ -83,8 +86,21 @@ impl App for Window {
                         "\\"
                     };
 
+                    let items = files
+                        .iter()
+                        .filter_map(|f| {
+                            if self.file_search.is_empty()
+                                || f.file_name.contains(self.file_search.as_str())
+                            {
+                                Some(f.file_name.as_str())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<&str>>();
+
                     let tree = build_file_system_tree(
-                        files.iter().map(|f| f.file_name.as_str()).collect(),
+                        items,
                         self.wad_path.split(split_by).last().unwrap().to_string(),
                     );
                     tree.display_tree(0, ui, self);
@@ -95,10 +111,31 @@ impl App for Window {
         CentralPanel::default().show(ctx, |ui| {
             if self.selected_record_buffer.len() > 0 {
                 ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(
-                        RichText::new(format!("{}", self.selected_record))
-                            .font(FontId::proportional(20.0)),
-                    );
+                    ui.with_layout(Layout::left_to_right(Align::LEFT), |ui| {
+                        ui.label(
+                            RichText::new(format!("{}", self.selected_record))
+                                .font(FontId::proportional(20.0)),
+                        );
+
+                        ui.with_layout(Layout::right_to_left(Align::LEFT), |ui| {
+                            if ui
+                                .button(RichText::new("Extract").font(FontId::proportional(15.0)))
+                                .clicked()
+                            {
+                                let buffer = self.selected_record_buffer.clone();
+                                let selected_record = self.selected_record.clone();
+                                std::thread::spawn(move || {
+                                    let path =
+                                        std::env::current_dir().unwrap().join(selected_record);
+                                    match File::create(path.clone()) {
+                                        Ok(_) => fs::write(path, buffer).unwrap(),
+                                        Err(_) => {}
+                                    }
+                                });
+                            }
+                        });
+                    });
+
                     ui.separator();
 
                     let buffer = String::from_utf8_lossy(&self.selected_record_buffer).to_string();
@@ -166,6 +203,22 @@ impl Item {
                             item.display_tree(indent + 1, ui, wnd);
                         }
                     });
+            }
+        }
+    }
+
+    fn search(&self, query: &str) -> bool {
+        match self {
+            Item::File(name) => return name.contains(query),
+            Item::Directory(name, items) => {
+                if name.contains(query) {
+                    true
+                } else {
+                    for item in items {
+                        item.search(query);
+                    }
+                    false
+                }
             }
         }
     }
