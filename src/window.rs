@@ -7,11 +7,11 @@ use std::{
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
     egui::{
-        load::Bytes, CentralPanel, CollapsingHeader, Image, ImageSource, Layout, RichText,
-        ScrollArea, SidePanel, TextEdit, TopBottomPanel, Ui,
+        CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel, TextEdit,
+        TopBottomPanel, Ui,
     },
     emath::Align,
-    epaint::{ColorImage, FontId},
+    epaint::FontId,
     App,
 };
 
