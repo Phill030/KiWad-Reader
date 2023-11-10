@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     fs::{self, File},
     ops::Add,
 };
@@ -6,11 +7,11 @@ use std::{
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
     egui::{
-        CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel, TextEdit,
-        TopBottomPanel, Ui,
+        load::Bytes, CentralPanel, CollapsingHeader, Image, ImageSource, Layout, RichText,
+        ScrollArea, SidePanel, TextEdit, TopBottomPanel, Ui,
     },
     emath::Align,
-    epaint::FontId,
+    epaint::{ColorImage, FontId},
     App,
 };
 
@@ -34,6 +35,8 @@ impl Window {
 
 impl App for Window {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        egui_extras::install_image_loaders(ctx);
+
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.with_layout(Layout::left_to_right(Align::LEFT), |ui| {
                 ui.label("Path:");
@@ -127,23 +130,40 @@ impl App for Window {
                                 std::thread::spawn(move || {
                                     let path =
                                         std::env::current_dir().unwrap().join(selected_record);
-                                    match File::create(path.clone()) {
-                                        Ok(_) => fs::write(path, buffer).unwrap(),
-                                        Err(_) => {}
+
+                                    if let Ok(_) = File::create(path.clone()) {
+                                        fs::write(path, buffer).unwrap()
                                     }
                                 });
                             }
                         });
                     });
-
                     ui.separator();
 
-                    let buffer = String::from_utf8_lossy(&self.selected_record_buffer).to_string();
-                    let mut content = buffer.as_str();
+                    match self.selected_record.split(".").last().unwrap() {
+                        "dds" | "jpg" | "png" | "jpeg" | "bmp" => {
+                            //
 
-                    let multi_line =
-                        TextEdit::multiline(&mut content).desired_width(ui.available_width());
-                    ui.add(multi_line);
+                            let image = eframe::egui::Image::from_bytes(
+                                Cow::Owned(String::from("bytes://").add(&self.selected_record)),
+                                self.selected_record_buffer.clone(),
+                            );
+
+                            ui.add(image);
+                        }
+                        "mp3" | "wav" | "ogg" => {
+                            unimplemented!();
+                        }
+                        _ => {
+                            let buffer =
+                                String::from_utf8_lossy(&self.selected_record_buffer).to_string();
+                            let mut content = buffer.as_str();
+
+                            let multi_line = TextEdit::multiline(&mut content)
+                                .desired_width(ui.available_width());
+                            ui.add(multi_line);
+                        }
+                    };
                 });
             } else {
                 if !self.selected_record.is_empty() {
@@ -181,8 +201,8 @@ impl Item {
         match self {
             Item::File(name) => {
                 let icon = match name.split(".").last().unwrap() {
-                    "png" | "dds" | "bmp" | "jpg" | "jpeg" => "📷",
-                    "mp3" | "ogg" | "wav" => "🎵",
+                    "dds" | "jpg" | "png" | "jpeg" | "bmp" => "📷",
+                    "mp3" | "wav" | "ogg" => "🎵",
                     _ => "🗋",
                 };
 
