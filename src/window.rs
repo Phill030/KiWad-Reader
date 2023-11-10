@@ -142,8 +142,6 @@ impl App for Window {
 
                     match self.selected_record.split(".").last().unwrap() {
                         "dds" | "jpg" | "png" | "jpeg" | "bmp" => {
-                            //
-
                             let image = eframe::egui::Image::from_bytes(
                                 Cow::Owned(String::from("bytes://").add(&self.selected_record)),
                                 self.selected_record_buffer.clone(),
