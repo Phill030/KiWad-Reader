@@ -149,7 +149,7 @@ impl App for Window {
                                 self.selected_record_buffer.clone(),
                             );
 
-                            ui.add(image);
+                            ui.add(image.fit_to_original_size(1.0));
                         }
                         "mp3" | "wav" | "ogg" => {
                             unimplemented!();
