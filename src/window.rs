@@ -7,8 +7,8 @@ use std::{
 use crate::wad::{FileRecord, WadRework};
 use eframe::{
     egui::{
-        CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel, TextEdit,
-        TopBottomPanel, Ui,
+        CentralPanel, CollapsingHeader, Layout, ProgressBar, RichText, ScrollArea, SidePanel,
+        TextEdit, TopBottomPanel, Ui,
     },
     emath::Align,
     epaint::FontId,
@@ -23,6 +23,7 @@ pub struct Window {
     selected_record: String,
     selected_record_buffer: Vec<u8>,
     invalid_file_found: bool,
+    media_playing: bool,
 }
 
 impl Window {
@@ -149,9 +150,7 @@ impl App for Window {
 
                             ui.add(image.fit_to_original_size(1.0));
                         }
-                        "mp3" | "wav" | "ogg" => {
-                            unimplemented!();
-                        }
+                        "mp3" | "wav" | "ogg" => render_audio(ui, self),
                         _ => {
                             let buffer =
                                 String::from_utf8_lossy(&self.selected_record_buffer).to_string();
@@ -204,10 +203,9 @@ impl Item {
                     _ => "🗋",
                 };
 
-                if ui
-                    .selectable_label(wnd.selected_record.eq(name), format!("{icon}  ").add(&name))
-                    .clicked()
-                {
+                let label = ui
+                    .selectable_label(wnd.selected_record.eq(name), format!("{icon}  ").add(&name));
+                if label.clicked() {
                     wnd.selected_record = name.to_owned();
                     wnd.selected_record_buffer.clear();
                 }
@@ -261,4 +259,20 @@ fn build_file_system_tree(paths: Vec<&str>, wad_name: String) -> Item {
         add_file_to_tree(&mut root, path);
     }
     root
+}
+
+fn render_audio(ui: &mut Ui, wnd: &mut Window) {
+    ui.with_layout(Layout::left_to_right(Align::LEFT), |ui| {
+        //
+        let icon = if wnd.media_playing { "⏸" } else { "▶" };
+        if ui
+            .button(RichText::new(icon).font(FontId::proportional(10.0)))
+            .clicked()
+        {
+            wnd.media_playing = !wnd.media_playing;
+        }
+        let bar = ProgressBar::new(0.65);
+        ui.add(bar);
+    });
+    ui.label("02:21 / 03:44");
 }
