@@ -8,6 +8,7 @@ authors = ["Phill030"]
 [dependencies]
 binary_modifier = "0.3.3"
 eframe = "0.23.0"
-egui_extras = "0.23.0"
+egui_extras = { version = "0.23.0", features = ["image"] }
 flate2 = "1.0.28"
+image = { version = "0.24.7", features = ["jpeg", "png", "dds"] }
 rayon = "1.8.0"
