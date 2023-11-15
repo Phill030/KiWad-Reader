@@ -23,7 +23,6 @@ pub struct Window {
     selected_record: String,
     selected_record_buffer: Vec<u8>,
     invalid_file_found: bool,
-    media_playing: bool,
 }
 
 impl Window {
@@ -262,17 +261,5 @@ fn build_file_system_tree(paths: Vec<&str>, wad_name: String) -> Item {
 }
 
 fn render_audio(ui: &mut Ui, wnd: &mut Window) {
-    ui.with_layout(Layout::left_to_right(Align::LEFT), |ui| {
-        //
-        let icon = if wnd.media_playing { "⏸" } else { "▶" };
-        if ui
-            .button(RichText::new(icon).font(FontId::proportional(10.0)))
-            .clicked()
-        {
-            wnd.media_playing = !wnd.media_playing;
-        }
-        let bar = ProgressBar::new(0.65);
-        ui.add(bar);
-    });
-    ui.label("02:21 / 03:44");
+    // TODO
 }
